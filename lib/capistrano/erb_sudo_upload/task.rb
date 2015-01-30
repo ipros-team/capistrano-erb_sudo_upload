@@ -1,4 +1,5 @@
 require 'capistrano/erb_sudo_upload/core'
+require 'capistrano/switchuser'
 module Capistrano
   module ErbSudoUpload
     def self.load_into(configuration)
@@ -21,15 +22,19 @@ module Capistrano
 
             method_names = ["#{key}"]
             role_map.each do |role_name, files|
-              method_name = (key + '_' + role_name).gsub('-', '_')
+              method_name = (key + '_' + role_name)
               method_names << method_name
               if role_name == 'all'
                 task method_name, except: {no_release: true} do
-                  sudo_upload_with_files(key, files, setting)
+                  switchuser(fetch(:erb_sudo_upload_user, fetch(:user))) do
+                    sudo_upload_with_files(key, files, setting)
+                  end
                 end
               else
                 task method_name, roles: role_name, except: {no_release: true} do
-                  sudo_upload_with_files(key, files, setting)
+                  switchuser(fetch(:erb_sudo_upload_user, fetch(:user))) do
+                    sudo_upload_with_files(key, files, setting)
+                  end
                 end
               end
             end

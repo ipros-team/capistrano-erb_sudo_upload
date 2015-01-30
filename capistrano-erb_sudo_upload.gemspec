@@ -18,6 +18,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   spec.add_dependency 'capistrano', '>= 2.15.0'
+  spec.add_dependency 'capistrano-switchuser'
   spec.add_development_dependency "bundler", "~> 1.72"
   spec.add_development_dependency "rake"
 end
