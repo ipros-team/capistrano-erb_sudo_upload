@@ -23,7 +23,6 @@ module Capistrano::ErbSudoUpload
           tmp_dir = "/tmp/capistrano/#{SecureRandom.uuid}/#{key}"
           run "mkdir -p #{tmp_dir}"
           FileUtils.mkdir_p(tmp_dir)
-          set_vars(file_setting['vars'])
           buf = ERB.new(File.read("#{root_dir}/#{key}/#{filename}").force_encoding('utf-8'), nil, '-').result(binding)
           gen_file_path = "#{tmp_dir}/#{filename}"
           File.write(gen_file_path, buf)

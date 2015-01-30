@@ -5,7 +5,9 @@ module Capistrano
       configuration.load do
         namespace :erb_sudo_upload do
           config_path = fetch(:erb_sudo_upload_config, "config/erb_sudo_upload.yml")
-          YAML.load(ERB.new(File.read(config_path)).result(binding)).each do |key, setting|
+          yaml = YAML.load(ERB.new(File.read(config_path)).result(binding))
+          set_vars(yaml['vars'])
+          yaml['settings'].each do |key, setting|
             role_map = {}
             setting.each do|filename, v|
               v['roles'].each{ |role_name|
@@ -44,6 +46,6 @@ module Capistrano
 end
 
 if Capistrano::Configuration.instance
-  Capistrano::ErbSudoUpload.load_into(Capistrano::Configuration.instance)
   Capistrano::ErbSudoUpload::Core.load_into(Capistrano::Configuration.instance)
+  Capistrano::ErbSudoUpload.load_into(Capistrano::Configuration.instance)
 end
