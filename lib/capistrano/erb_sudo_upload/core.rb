@@ -6,8 +6,8 @@ module Capistrano::ErbSudoUpload
       configuration.load do
         def self.sudo_upload_with_files(key, files, setting)
           files.each do|filename|
-            v = setting[filename]
-            generate_file(filename, v, key)
+            file_setting = setting[filename]
+            generate_file(filename, file_setting, key)
           end
         end
 
