@@ -11,11 +11,19 @@ module Capistrano::ErbSudoUpload
           end
         end
 
+        def self.set_vars(vars)
+          return if vars.nil?
+          vars.each do|variable_name, value|
+            set variable_name.to_sym, value
+          end
+        end
+
         def self.generate_file(filename, file_setting, key)
           root_dir = fetch(:erb_sudo_upload_root)
           tmp_dir = "/tmp/capistrano/#{SecureRandom.uuid}/#{key}"
           run "mkdir -p #{tmp_dir}"
           FileUtils.mkdir_p(tmp_dir)
+          set_vars(file_setting['vars'])
           buf = ERB.new(File.read("#{root_dir}/#{key}/#{filename}").force_encoding('utf-8'), nil, '-').result(binding)
           gen_file_path = "#{tmp_dir}/#{filename}"
           File.write(gen_file_path, buf)
