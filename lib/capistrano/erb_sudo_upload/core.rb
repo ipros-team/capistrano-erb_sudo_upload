@@ -13,8 +13,11 @@ module Capistrano::ErbSudoUpload
           end
         end
 
-        def self.generate_file_local(src, dest)
-          buf = ERB.new(File.read(src).force_encoding('utf-8'), nil, '-').result(binding)
+        def self.generate_file_local(src, dest, erb)
+          buf = File.read(src).force_encoding('utf-8')
+          if erb
+            buf = ERB.new(buf, nil, '-').result(binding)
+          end
           FileUtils.mkdir_p(File.dirname(dest))
           File.write(dest, buf)
         end
@@ -31,7 +34,7 @@ module Capistrano::ErbSudoUpload
           tmp_dir = "/tmp/capistrano-#{SecureRandom.uuid}/#{key}"
 
           gen_file_path = "#{tmp_dir}/#{filename}"
-          generate_file_local("#{root_dir}/#{key}/#{filename}", gen_file_path)
+          generate_file_local("#{root_dir}/#{key}/#{filename}", gen_file_path, file_setting['erb'] || true)
 
           upload_file(gen_file_path, file_setting)
           run "#{sudo} rm -rf #{tmp_dir}"
