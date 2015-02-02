@@ -1,4 +1,5 @@
 require 'capistrano/erb_sudo_upload/core'
+require 'capistrano/erb_sudo_upload/util'
 require 'capistrano/switchuser'
 module Capistrano
   module ErbSudoUpload
@@ -9,40 +10,23 @@ module Capistrano
           yaml = YAML.load(ERB.new(File.read(config_path)).result(binding))
           set_vars(yaml['vars'])
           yaml['settings'].each do |key, setting|
-            role_map = {}
-            setting.each do|filename, v|
-              v['roles'].each{ |role_name|
-                if role_map[role_name]
-                  role_map[role_name] << filename 
-                else
-                  role_map[role_name] = [filename]
-                end
-              }
-            end
+            role_map = Util.get_role_map(setting)
 
-            method_names = ["#{key}"]
-            role_map.each do |role_name, files|
-              method_name = (key + '_' + role_name)
-              method_names << method_name
-              if role_name == 'all'
-                task method_name, except: {no_release: true} do
-                  switchuser(fetch(:erb_sudo_upload_user, fetch(:user))) do
-                    sudo_upload_with_files(key, files, setting)
-                  end
-                end
-              else
-                task method_name, roles: role_name, except: {no_release: true} do
-                  switchuser(fetch(:erb_sudo_upload_user, fetch(:user))) do
-                    sudo_upload_with_files(key, files, setting)
-                  end
+            method_names = []
+            namespace key do
+              task "default", except: {no_release: true} do
+                puts "#{key} deploy start"
+              end
+              role_map.each do |role_name, files|
+                method_names << role_name
+                option = role_name == 'all' ? { except: {no_release: true} } : { roles: role_name, except: {no_release: true} }
+                task(role_name, option) do
+                  sudo_upload_with_files(key, files, setting)
                 end
               end
             end
-            task_names = method_names.map{ |method_name| "erb_sudo_upload:" + method_name}
-            after *task_names
-            task key, except: {no_release: true} do
-              puts "#{key} deploy start"
-            end
+            task_names = method_names.map{ |role_name| "erb_sudo_upload:#{key}:#{role_name}"}
+            after *(["erb_sudo_upload:#{key}"].concat(task_names))
           end
         end
       end
