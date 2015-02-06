@@ -47,6 +47,7 @@ module Capistrano::ErbSudoUpload
           run "#{sudo} diff #{gen_file_path} #{file_setting['dest']};true"
           dryrun = fetch(:erb_sudo_upload_dryrun, false)
           unless dryrun
+            run "#{sudo} mkdir -p #{File.dirname(file_setting['dest'])}"
             run "#{sudo} mv #{gen_file_path} #{file_setting['dest']}"
             run "#{sudo} chown #{file_setting['owner']} #{file_setting['dest']}"
             run "#{sudo} chmod #{file_setting['mode']} #{file_setting['dest']}"
