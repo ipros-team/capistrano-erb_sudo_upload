@@ -34,18 +34,14 @@ module Capistrano
               if before_commands
                 desc "exec commands => #{before_commands.join(';')}"
                 task('before', exec_commands_option) do
-                  before_commands.each do |before_command|
-                    run "#{sudo} #{before_command}" unless fetch(:erb_sudo_upload_dryrun, false)
-                  end
+                  run_sudo_commands(before_commands)
                 end
               end
 
               if after_commands
                 desc "exec commands => #{after_commands.join(';')}"
                 task('after', exec_commands_option) do
-                  after_commands.each do |after_command|
-                    run "#{sudo} #{after_command}" unless fetch(:erb_sudo_upload_dryrun, false)
-                  end
+                  run_sudo_commands(after_commands)
                 end
               end
             end

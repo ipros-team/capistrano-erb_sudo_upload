@@ -4,6 +4,15 @@ module Capistrano::ErbSudoUpload
   class Core
     def self.load_into(configuration)
       configuration.load do
+        def self.run_sudo_commands(commands)
+          switchuser(fetch(:erb_sudo_upload_user, fetch(:user))) do
+            commands.each do |command|
+              run "pwd" unless fetch(:erb_sudo_upload_dryrun, false)
+              run "#{sudo} #{command}" unless fetch(:erb_sudo_upload_dryrun, false)
+            end
+          end
+        end
+
         def self.sudo_upload_with_files(key, files, setting)
           switchuser(fetch(:erb_sudo_upload_user, fetch(:user))) do
             files.each do|filename|
