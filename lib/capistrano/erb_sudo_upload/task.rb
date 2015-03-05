@@ -23,7 +23,9 @@ module Capistrano
               end
               role_map.each do |role_name, files|
                 method_names << role_name
-                option = role_name == 'all' ? { except: {no_release: true} } : { roles: role_name, except: {no_release: true} }
+                option = role_name == 'all' ? {} : { roles: role_name }
+                option[:except] = {no_release: true}
+                option[:on_no_matching_servers] = :continue
                 desc "deploy [#{files.join(', ')}], Role is #{role_name} only"
                 task(role_name, option) do
                   sudo_upload_with_files(key, files, file_settings)
