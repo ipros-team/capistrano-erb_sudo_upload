@@ -49,25 +49,29 @@ module Capistrano::ErbSudoUpload
           erb = file_setting['erb'].nil? ? true : file_setting['erb']
           generate_file_local("#{root_dir}/#{key}/#{filename}", gen_file_path, erb)
 
-          upload_file(gen_file_path, file_setting)
-          run "#{sudo} rm -rf #{tmp_dir}"
+          commands = upload_file(gen_file_path, file_setting)
+
+          commands << "#{sudo} rm -rf #{tmp_dir};true"
+          run commands.join(';')
         end
 
         def self.upload_file(gen_file_path, file_setting)
+          commands = []
           run "mkdir -p #{File.dirname(gen_file_path)}"
           upload(gen_file_path, gen_file_path, via: :scp)
 
-          run "#{sudo} diff #{gen_file_path} #{file_setting['dest']};true"
+          commands << "#{sudo} diff #{gen_file_path} #{file_setting['dest']}"
           dryrun = fetch(:erb_sudo_upload_dryrun, false)
           unless dryrun
-            run "#{sudo} mkdir -p #{File.dirname(file_setting['dest'])}"
-            run "#{sudo} mv #{gen_file_path} #{file_setting['dest']}"
-            run "#{sudo} chown #{file_setting['owner']} #{file_setting['dest']}"
-            run "#{sudo} chmod #{file_setting['mode']} #{file_setting['dest']}"
+            commands << "#{sudo} mkdir -p #{File.dirname(file_setting['dest'])}"
+            commands << "#{sudo} mv #{gen_file_path} #{file_setting['dest']}"
+            commands << "#{sudo} chown #{file_setting['owner']} #{file_setting['dest']}"
+            commands << "#{sudo} chmod #{file_setting['mode']} #{file_setting['dest']}"
           else
-            run "cat #{gen_file_path}"
+            commands << "cat #{gen_file_path}"
           end
-          run "ls -l #{file_setting['dest']};true"
+          commands << "ls -l #{file_setting['dest']}"
+          commands
         end
       end
     end
