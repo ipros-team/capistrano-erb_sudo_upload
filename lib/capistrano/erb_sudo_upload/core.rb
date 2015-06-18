@@ -46,7 +46,8 @@ module Capistrano::ErbSudoUpload
           tmp_dir = "/tmp/capistrano-#{SecureRandom.uuid}/#{key}"
 
           gen_file_path = "#{tmp_dir}/#{filename}"
-          generate_file_local("#{root_dir}/#{key}/#{filename}", gen_file_path, file_setting['erb'] || true)
+          erb = file_setting['erb'].nil? ? true : file_setting['erb']
+          generate_file_local("#{root_dir}/#{key}/#{filename}", gen_file_path, erb)
 
           upload_file(gen_file_path, file_setting)
           run "#{sudo} rm -rf #{tmp_dir}"
