@@ -83,7 +83,7 @@ module Capistrano::ErbSudoUpload
           dryrun = fetch(:erb_sudo_upload_dryrun, false)
           unless dryrun
             commands << "#{sudo} mkdir -p #{File.dirname(file_setting['dest'])}"
-            commands << "#{sudo} cp -rp #{target_dir} #{FileTest.directory?(file_setting['dest']) ? File.dirname(file_setting['dest']) : file_setting['dest']}"
+            commands << "#{sudo} cp -rp #{target_dir} #{FileTest.directory?(target_dir) ? File.dirname(file_setting['dest']) : file_setting['dest']}"
             commands << "#{sudo} chown -R #{file_setting['owner']} #{file_setting['dest']}"
           end
           commands << "ls -l #{file_setting['dest']}"
