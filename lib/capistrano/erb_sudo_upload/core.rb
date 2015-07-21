@@ -16,22 +16,55 @@ module Capistrano::ErbSudoUpload
           end
         end
 
-        def self.sudo_upload_with_files(key, files, setting)
+        def self.sudo_upload_with_files(key, files, setting, excludes)
           switchuser(fetch(:erb_sudo_upload_user, fetch(:user))) do
             files.each do|filename|
               file_setting = setting[filename]
-              deploy_file(filename, file_setting, key)
+              deploy_file(filename, file_setting, key, excludes)
             end
           end
         end
 
-        def self.generate_file_local(src, dest, erb)
-          buf = File.read(src).force_encoding('utf-8')
-          if erb
-            buf = ERB.new(buf, nil, '-').result(binding)
-          end
-          FileUtils.mkdir_p(File.dirname(dest))
-          File.write(dest, buf)
+        def self.deploy_file(filename, file_setting, key, excludes)
+          root_dir = fetch(:erb_sudo_upload_root)
+          tmp_base_dir = "/tmp/capistrano-#{SecureRandom.uuid}"
+          tmp_dir = "#{tmp_base_dir}/#{key}"
+
+          gen_file_path = "#{tmp_dir}/#{filename}"
+          erb = file_setting['erb'].nil? ? true : file_setting['erb']
+          base_dir = File.absolute_path("#{root_dir}/#{key}/#{filename}")
+          generate_file_local(base_dir, gen_file_path, erb, excludes)
+
+          # commands = upload_file(gen_file_path, file_setting)
+          commands = upload_files(gen_file_path, file_setting)
+
+          commands << "#{sudo} rm -rf #{tmp_base_dir};true"
+          run commands.join(';')
+        end
+
+        def self.generate_file_local(src, dest, erb, excludes)
+          array = FileTest.directory?(src) ? Dir.glob("#{src}/**/*") : [src]
+          array.each{ |item|
+            if !excludes.nil? && /#{excludes.join('|')}/ =~ item
+              next
+            end
+            next if FileTest.directory?(item)
+            file_path = File.absolute_path(item)
+            dest_path = File.absolute_path(dest)
+            buf = File.read(file_path).force_encoding('utf-8')
+            if erb
+              begin
+                buf = ERB.new(buf, nil, '-').result(binding)
+              rescue Exception => e
+                puts "ERROR => #{file_path}"
+                puts "\n#{e.message}\n#{e.backtrace.join("\n")}"
+              end
+            end
+            target_path = dest_path + item.gsub(src, '')
+            FileUtils.mkdir_p(File.dirname(target_path))
+            File.write(target_path, buf)
+            File.chmod(File::Stat.new(item).mode, target_path)
+          }
         end
 
         def self.set_vars(vars)
@@ -41,34 +74,17 @@ module Capistrano::ErbSudoUpload
           end
         end
 
-        def self.deploy_file(filename, file_setting, key)
-          root_dir = fetch(:erb_sudo_upload_root)
-          tmp_dir = "/tmp/capistrano-#{SecureRandom.uuid}/#{key}"
-
-          gen_file_path = "#{tmp_dir}/#{filename}"
-          erb = file_setting['erb'].nil? ? true : file_setting['erb']
-          generate_file_local("#{root_dir}/#{key}/#{filename}", gen_file_path, erb)
-
-          commands = upload_file(gen_file_path, file_setting)
-
-          commands << "#{sudo} rm -rf #{tmp_dir};true"
-          run commands.join(';')
-        end
-
-        def self.upload_file(gen_file_path, file_setting)
+        def self.upload_files(gen_file_path, file_setting)
           commands = []
-          run "mkdir -p #{File.dirname(gen_file_path)}"
-          upload(gen_file_path, gen_file_path, via: :scp)
-
-          commands << "#{sudo} diff #{gen_file_path} #{file_setting['dest']}"
+          target_dir = File.absolute_path(gen_file_path)
+          run "mkdir -p #{File.dirname(target_dir)}"
+          upload(target_dir, target_dir, :via => :scp, :recursive => true)
+          commands << "#{sudo} diff -r #{target_dir} #{file_setting['dest']}; true"
           dryrun = fetch(:erb_sudo_upload_dryrun, false)
           unless dryrun
             commands << "#{sudo} mkdir -p #{File.dirname(file_setting['dest'])}"
-            commands << "#{sudo} mv #{gen_file_path} #{file_setting['dest']}"
-            commands << "#{sudo} chown #{file_setting['owner']} #{file_setting['dest']}"
-            commands << "#{sudo} chmod #{file_setting['mode']} #{file_setting['dest']}"
-          else
-            commands << "cat #{gen_file_path}"
+            commands << "#{sudo} cp -rp #{target_dir} #{FileTest.directory?(file_setting['dest']) ? File.dirname(file_setting['dest']) : file_setting['dest']}"
+            commands << "#{sudo} chown -R #{file_setting['owner']} #{file_setting['dest']}"
           end
           commands << "ls -l #{file_setting['dest']}"
           commands
