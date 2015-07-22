@@ -4,8 +4,9 @@ module Capistrano::ErbSudoUpload
   class Core
     def self.load_into(configuration)
       configuration.load do
-        def self.run_sudo_commands(commands)
-          switchuser(fetch(:erb_sudo_upload_user, fetch(:user))) do
+        def self.run_sudo_commands(commands, setting)
+          deploy_user = setting['user'] || fetch(:erb_sudo_upload_user, nil) || fetch(:user, nil)
+          switchuser(deploy_user) do
             commands.each do |command|
               unless fetch(:erb_sudo_upload_dryrun, false)
                 run "#{sudo} #{command}"
@@ -17,7 +18,8 @@ module Capistrano::ErbSudoUpload
         end
 
         def self.sudo_upload_with_files(key, files, setting, excludes)
-          switchuser(fetch(:erb_sudo_upload_user, fetch(:user))) do
+          deploy_user = setting['user'] || fetch(:erb_sudo_upload_user, nil) || fetch(:user, nil)
+          switchuser(deploy_user) do
             files.each do|filename|
               file_setting = setting[filename]
               deploy_file(filename, file_setting, key, excludes)

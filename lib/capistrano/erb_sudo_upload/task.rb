@@ -37,14 +37,14 @@ module Capistrano
               if before_commands
                 desc "exec commands => #{before_commands.join(';')}"
                 task('before', exec_commands_option) do
-                  run_sudo_commands(before_commands)
+                  run_sudo_commands(before_commands, setting)
                 end
               end
 
               if after_commands
                 desc "exec commands => #{after_commands.join(';')}"
                 task('after', exec_commands_option) do
-                  run_sudo_commands(after_commands)
+                  run_sudo_commands(after_commands, setting)
                 end
               end
             end
