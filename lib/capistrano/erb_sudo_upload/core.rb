@@ -87,6 +87,7 @@ module Capistrano::ErbSudoUpload
             commands << "#{sudo} mkdir -p #{File.dirname(file_setting['dest'])}"
             commands << "#{sudo} cp -rp #{target_dir} #{FileTest.directory?(target_dir) ? File.dirname(file_setting['dest']) : file_setting['dest']}"
             commands << "#{sudo} chown -R #{file_setting['owner']} #{file_setting['dest']}"
+            commands << "#{sudo} chmod -R #{file_setting['mode']} #{file_setting['dest']}" if file_setting.has_key?('mode')
           end
           commands << "ls -l #{file_setting['dest']}"
           commands
