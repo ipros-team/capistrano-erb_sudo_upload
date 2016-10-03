@@ -13,6 +13,12 @@ module Capistrano
             before_commands = setting['before_commands']
             after_commands = setting['after_commands']
             file_settings = setting['file_settings']
+            task_options =
+              if setting['task_options'].nil?
+                {}
+              else
+                setting['task_options'].inject({}){|memo,(k,v)| memo[k.to_sym] = v; memo}
+              end
             excludes = setting['excludes']
             role_map = Util.get_role_map(file_settings)
 
@@ -27,6 +33,8 @@ module Capistrano
                 option = role_name == 'all' ? {} : { roles: role_name }
                 option[:except] = {no_release: true}
                 option[:on_no_matching_servers] = :continue
+                option = task_options.merge(option)
+
                 desc "deploy [#{files.join(', ')}], Role is #{role_name} only"
                 task(role_name, option) do
                   sudo_upload_with_files(key, files, file_settings, excludes)
